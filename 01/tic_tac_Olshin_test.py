@@ -23,12 +23,33 @@ class TicTacTest(unittest.TestCase):
         ]
         self.assertEqual(test_exem.check_winner(), 'X')
         test_exem.board = [
-            ['X', 'X', 'O', '3'],
-            ['X', 'O', '.', '2'],
-            ['O', '.', '.', '1'],
+            ['O', '.', 'X', '3'],
+            ['.', 'O', 'X', '2'],
+            ['.', 'X', 'O', '1'],
             ['a', 'b', 'c']
         ]
         self.assertEqual(test_exem.check_winner(), 'O')
+        test_exem.board = [
+            ['O', '.', 'X', '3'],
+            ['.', 'X', 'O', '2'],
+            ['X', '.', '.', '1'],
+            ['a', 'b', 'c']
+        ]
+        self.assertEqual(test_exem.check_winner(), 'X')
+        test_exem.board = [
+            ['X', '.', 'O', '3'],
+            ['.', 'O', 'X', '2'],
+            ['O', '.', 'X', '1'],
+            ['a', 'b', 'c']
+        ]
+        self.assertEqual(test_exem.check_winner(), 'O')
+        test_exem.board = [
+            ['O', 'X', '.', '3'],
+            ['O', 'X', 'O', '2'],
+            ['.', 'X', '.', '1'],
+            ['a', 'b', 'c']
+        ]
+        self.assertEqual(test_exem.check_winner(), 'X')
         test_exem.board = [
             ['X', 'O', '.', '3'],
             ['X', 'O', 'X', '2'],
@@ -43,6 +64,13 @@ class TicTacTest(unittest.TestCase):
             ['a', 'b', 'c']
         ]
         self.assertEqual(test_exem.check_winner(), 'X')
+        test_exem.board = [
+            ['.', 'X', 'X', '3'],
+            ['X', 'X', '.', '2'],
+            ['O', 'O', 'O', '1'],
+            ['a', 'b', 'c']
+        ]
+        self.assertEqual(test_exem.check_winner(), 'O')
         test_exem.board = [
             ['O', 'X', 'O', '3'],
             ['O', 'X', 'X', '2'],
