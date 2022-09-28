@@ -61,5 +61,6 @@ class MainTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             main.parse_json(main.keyword_handler, json_str, ['key2'], ['word2'])
 
+            
 if __name__ == '__main__':
     unittest.main()
