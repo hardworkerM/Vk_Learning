@@ -20,7 +20,7 @@ class TicTacGame:
         nums = ['3', '2', '1']
         lets = ['a', 'b', 'c']
         while True:
-            coord = input('\nEnter coordinates: ')
+            coord = input('\nEnter coordinates without separaytion: ')
             try:
                 left, right = coord[0], coord[1]
                 if left in nums:
