@@ -11,7 +11,8 @@ class TicTacTest(unittest.TestCase):
         input_draw_mock.side_effect = ['1a', '1a', 'abs',
                                        '2b', '1b', '1c', '3a',
                                        '2a', '2c', '3b', '3c']
-        self.assertFalse(test_exem.start_game())
+        with patch('sys.stdout', new=StringIO()):
+            self.assertFalse(test_exem.start_game())
 
     def test_check_winner(self):
         test_exem = py.TicTacGame()
