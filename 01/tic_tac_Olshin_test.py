@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 import tic_tac_Olshin as py
-import sys
 from io import StringIO
 
 
