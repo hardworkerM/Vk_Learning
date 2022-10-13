@@ -26,14 +26,13 @@ class Integer:
     def __get__(self, obj, objtype):
         if '_val' in self.__dict__:
             return self._val
-        else:
-            raise AttributeError('There is no such attribute')
+        raise AttributeError('There is no such attribute')
 
     def __set__(self, obj, val):
         if isinstance(val, int):
             self._val = val
         else:
-            raise TypeError(f'Attribute must be integer')
+            raise TypeError('Attribute must be integer')
 
     def __delete__(self, obj):
         del self._val
@@ -43,14 +42,13 @@ class String:
     def __get__(self, obj, objtype):
         if '_val' in self.__dict__:
             return self._val
-        else:
-            raise AttributeError('There is no such attribute')
+        raise AttributeError('There is no such attribute')
 
     def __set__(self, obj, val):
         if isinstance(val, str):
             self._val = val
         else:
-            raise TypeError(f'Attribute must be string')
+            raise TypeError('Attribute must be string')
 
     def __delete__(self, obj):
         del self._val
@@ -60,15 +58,14 @@ class PositiveInteger:
     def __get__(self, obj, objtype):
         if '_val' in self.__dict__:
             return self._val
-        else:
-            raise AttributeError('There is no such attribute')
+        raise AttributeError('There is no such attribute')
 
     def __set__(self, obj, val):
         print('set', val)
         if isinstance(val, int) and val < 0:
             self._val = val
         else:
-            raise TypeError(f'Attribute must be integer and negative')
+            raise TypeError('Attribute must be integer and negative')
 
     def __delete__(self, obj):
         del self._val
