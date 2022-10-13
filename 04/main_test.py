@@ -5,7 +5,6 @@ from main import CustomMeta, Integer, String, PositiveInteger
 class MainTest(unittest.TestCase):
 
     def test_meta_class(self):
-
         class TestClass(metaclass=CustomMeta):
             x = 50
 
@@ -39,16 +38,53 @@ class MainTest(unittest.TestCase):
         with self.assertRaises(AttributeError):
             TestClass.x
 
-    class TestType:
-        num = Integer()
-        name = String()
-        price = PositiveInteger()
-
-        def __init__(...):
-            ....
-    
     def test_integer(self):
-        field = Integer()
-        field = 'o'
-        # with self.assertRaises(TypeError):
-        #     field = 'Test'
+        class TestType:
+            num = Integer()
+
+            def __init__(self, num):
+                self.num = num
+        with self.assertRaises(TypeError):
+            TestType('1')
+        with self.assertRaises(TypeError):
+            TestType([1, 2])
+        inst = TestType(1)
+        del inst.num
+        with self.assertRaises(AttributeError):
+            inst.num
+
+    def test_string(self):
+        class TestType:
+            line = String()
+
+            def __init__(self, val):
+                self.line = val
+        with self.assertRaises(TypeError):
+            TestType(1)
+        with self.assertRaises(TypeError):
+            TestType([1, 2])
+        inst = TestType('test')
+        del inst.line
+        with self.assertRaises(AttributeError):
+            inst.line
+
+    def test_pos_integer(self):
+        class TestType:
+            neg_num = PositiveInteger()
+
+            def __init__(self, neg_num):
+                self.neg_num = neg_num
+        with self.assertRaises(TypeError):
+            TestType('1')
+        with self.assertRaises(TypeError):
+            TestType([1, 2])
+        with self.assertRaises(TypeError):
+            TestType(1)
+        inst = TestType(-1)
+        del inst.neg_num
+        with self.assertRaises(AttributeError):
+            inst.neg_num
+
+
+if __name__ == '__main__':
+    unittest.main()
