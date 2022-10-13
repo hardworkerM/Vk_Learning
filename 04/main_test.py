@@ -18,9 +18,7 @@ class MainTest(unittest.TestCase):
             def __str__(self):
                 return 'Test'
 
-        self.assertEqual(CustomMeta.__new__(CustomMeta, 'TestClass', (), {}), Test)
-        inst = TestClass
-        self.assertEqual()
+        inst = TestClass()
         self.assertEqual(inst.custom_x, 50)
         self.assertEqual(TestClass.custom_x, 50)
         self.assertEqual(inst.custom_val, 90)
@@ -40,3 +38,17 @@ class MainTest(unittest.TestCase):
             inst.non_exist
         with self.assertRaises(AttributeError):
             TestClass.x
+
+    class TestType:
+        num = Integer()
+        name = String()
+        price = PositiveInteger()
+
+        def __init__(...):
+            ....
+    
+    def test_integer(self):
+        field = Integer()
+        field = 'o'
+        # with self.assertRaises(TypeError):
+        #     field = 'Test'
