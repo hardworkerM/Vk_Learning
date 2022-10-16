@@ -1,5 +1,4 @@
 from collections import deque
-import io
 
 
 class LRUCache:
@@ -25,18 +24,16 @@ class LRUCache:
         self.cache_check(key)
 
 
-def filter_file(name: str, sc_list: list):
-    for i in range(len(sc_list)):
-        sc_list[i] = sc_list[i].lower()
-    print(sc_list)
-    with io.open(name, encoding='utf-8') as f:
-        for line in f:
-            for word in line.split(' '):
-                if word.lower() in sc_list:
-                    yield line
+def filter_file(file, sc_list: list):
+    for i, val in enumerate(sc_list):
+        sc_list[i] = val.lower()
+    for line in file:
+        flag = False
+        for word in line[:-1].split(' '):
+            if word.lower() in sc_list:
+                flag = True
+                break
+        if flag:
+            yield line[:-1]
+        else:
             yield None
-
-
-gen = filter_file('file.txt', ['И', 'Белая', 'В'])
-for i in range(20):
-    print(next(gen))
