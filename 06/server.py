@@ -1,77 +1,120 @@
+"""Multithreading TSP - server, that receives URL from client, processes them
+    and returns 'com_count' most common use words in html"""
 import socket
 import threading
 import queue
+import requests
+import re
+import json
 import sys
 import argparse
+from collections import Counter
 
 
-class Client:
-    def __init__(self, th_count, file: str, host=socket.gethostname(), port=5000):
-        self.file = file
-        self.th_count = th_count
-        self.host = host
-        self.port = port
-        self.que = queue.Queue(self.th_count * 2)
-        self.lock = threading.Lock()
+class Server:
+    def __init__(self, w_count, com_count, host=socket.gethostname(), port=5000):
+        print(f'Server ip:{host}, port:{port}')
+        self.w_count = w_count
+        self.com_count = com_count
+        self.url_count = 0
+        self.que = queue.Queue(self.w_count * 2)
+        self.ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.ser.bind((host, port))
+        self.ser.listen(self.w_count + 1)
 
-    def connect(self):
-        ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        ser.connect((self.host, self.port))
-        try:
-            msg = ser.recv(1024).decode('utf-8')
-        except Exception as e:
-            print(f'Error: {str(e)}')
-            msg = 'Exit'
-            exit()
-        if msg == 'CLinet is connected!':
-            threads = [
-                threading.Thread(
-                    target=self.listen,
-                )
-                for _ in range(self.th_count)
-            ]
+    def sender(self, json_str, url):
+        client, addr = self.ser.accept()
+        msg = url + '~' + json_str
+        client.send('Worker'.encode('utf-8'))
+        if client.recv(1024).decode('utf-8') == "Ready":
+            client.send(msg.encode('utf-8'))
+            self.url_count += 1
+        client.close()
 
-            for th in threads:
-                th.start()
+    def start_server(self):
+        client, addr = self.ser.accept()
+        client.send('CLinet is connected!'.encode('utf-8'))
 
-            self.queue_gen()
+        master_tr = threading.Thread(
+                target=self.master,
+            )
 
-            for th in threads:
-                th.join()
-        else:
-            exit()
+        master_tr.start()
+        master_tr.join()
 
-    def queue_gen(self):
-        with open(self.file, 'r') as f:
-            for line in f:
-                self.que.put(line)
-        for _ in range(self.th_count):
-            self.que.put(None)
+        print('End')
 
-    def listen(self):
+    def master(self):
+
+        worker_tr = [
+            threading.Thread(
+                target=self.worker,
+            )
+            for _ in range(self.w_count)
+        ]
+
+        for th in worker_tr:
+            th.start()
+
+        while True:
+            client, addr = self.ser.accept()
+            client.send('Master'.encode('utf-8'))
+
+            try:
+                data = client.recv(1024)
+            except Exception as e:
+                print(f'Error {str(e)}')
+                break
+
+            if len(data) > 0:
+                url = data.decode('utf-8')[:-1]
+                self.que.put(url)
+            else:
+                for _ in range(self.w_count):
+                    self.que.put(None)
+                break
+
+            client.close()
+
+        for th in worker_tr:
+            th.join()
+
+    def worker(self):
         while True:
             try:
-                ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                ser.connect((self.host, self.port))
-                msg = ser.recv(1024).decode('utf-8')
-            except ConnectionResetError:
-                break
-            if msg == 'Master':
                 url = self.que.get(timeout=1)
-                if url is None:
-                    break
-                ser.send(url.encode('utf-8'))
-            elif msg == 'Worker':
-                ser.send('Ready'.encode('utf-8'))
-                url, json_str = ser.recv(1024).decode('utf-8').split('~', 1)
-                print(f'{url}: {json_str}')
-            ser.close()
+            except queue.Empty:
+                print('Error empty queue')
+                continue
+            if url is None:
+                print('Worker stopped')
+                break
+            try:
+                rs = requests.get(url)
+                if rs.status_code != 200:
+                    print('Status code is not 200')
+                    continue
+            except Exception as e:
+                print(f'Error: {e}')
+                continue
+
+            http = rs.text
+            word_list = re.findall('[a-zа-яё]+', http, flags=re.IGNORECASE)
+            freq = Counter(word_list).most_common(self.com_count)
+            js_freq = json.dumps(dict(freq))
+            self.sender(js_freq, url)
+            print(js_freq)
+
+
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-w', type=int, default=1)
+    parser.add_argument('-k', type=int, default=1)
+    return parser
 
 
 if __name__ == '__main__':
-    try:
-        num_thr = sys.argv[1]
-        file_name = sys.argv[2]
-    except IndexError:
-        raise IndexError('Not all arguments are given')
-    Client(num_thr, file_name).connect()
+    namespace = create_parser().parse_args(sys.argv[1:])
+    w = namespace.w
+    k = namespace.k
+    Server(w, k).start_server()
