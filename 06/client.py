@@ -1,12 +1,17 @@
+"""Client code that parse file with urls, sends
+urls one by one to server and receives the result"""
 import socket
 import threading
 import queue
 import sys
-import argparse
 
 
 class Client:
-    def __init__(self, th_count, file: str, host=socket.gethostname(), port=5000):
+    """Client takes such values as th_count - number of threads,
+    file - name of file which client will send to server,
+    host and port"""
+    def __init__(self, th_count, file: str,
+                 host=socket.gethostname(), port=4000):
         self.file = file
         self.th_count = th_count
         self.host = host
@@ -15,14 +20,17 @@ class Client:
         self.lock = threading.Lock()
 
     def connect(self):
+        """Check connection to server, starts threads,
+        fills a queue with urls from the file,
+        exits if there is no connection"""
         ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         ser.connect((self.host, self.port))
         try:
             msg = ser.recv(1024).decode('utf-8')
-        except Exception as e:
-            print(f'Error: {str(e)}')
+        except ConnectionResetError:
+            print('ConnectionResetError')
             msg = 'Exit'
-            exit()
+            sys.exit()
         if msg == 'CLinet is connected!':
             threads = [
                 threading.Thread(
@@ -31,24 +39,29 @@ class Client:
                 for _ in range(self.th_count)
             ]
 
-            for th in threads:
-                th.start()
+            for thread in threads:
+                thread.start()
 
             self.queue_gen()
 
-            for th in threads:
-                th.join()
+            for thread in threads:
+                thread.join()
         else:
-            exit()
+            sys.exit()
 
     def queue_gen(self):
-        with open(self.file, 'r') as f:
-            for line in f:
+        """Fills queue with urls from given file"""
+        with open(self.file, 'r', encoding='utf-8') as text:
+            for line in text:
                 self.que.put(line)
         for _ in range(self.th_count):
             self.que.put(None)
 
     def listen(self):
+        """Threads that in loop connect to the server
+        if server sends 'Master' they send it an url from queue,
+        if server sends 'Worker' they are waiting to receive
+        result from server and print it"""
         while True:
             try:
                 ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,8 +83,8 @@ class Client:
 
 if __name__ == '__main__':
     try:
-        num_thr = sys.argv[1]
+        M = int(sys.argv[1])
         file_name = sys.argv[2]
-    except IndexError:
-        raise IndexError('Not all arguments are given')
-    Client(num_thr, file_name).connect()
+    except IndexError as exc:
+        raise exc
+    Client(M, file_name).connect()
