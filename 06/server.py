@@ -1,21 +1,26 @@
-"""Multithreading TSP - server, that receives URL from client, processes them
-    and returns 'com_count' most common use words in html"""
+"""Multithreading TSP - server, that receives URL from client, processes
+    them and returns N most common use words in html"""
 import socket
 import threading
 import queue
-import requests
 import re
 import json
 import sys
 import argparse
 from collections import Counter
+import requests
 
 
 class Server:
-    def __init__(self, w_count, com_count, host=socket.gethostname(), port=5000):
+    """Server takes such values as w_count - number of worker threads,
+    com_count - number of most common use words in html
+    host and port"""
+    def __init__(self, w_count: int, com_count: int,
+                 host=socket.gethostname(), port=4000):
         print(f'Server ip:{host}, port:{port}')
         self.w_count = w_count
         self.com_count = com_count
+        self.lock = threading.Lock()
         self.url_count = 0
         self.que = queue.Queue(self.w_count * 2)
         self.ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,7 +28,9 @@ class Server:
         self.ser.listen(self.w_count + 1)
 
     def sender(self, json_str, url):
-        client, addr = self.ser.accept()
+        """Connects to client and sends processed url
+         when Client sends 'Ready', count a number of processed urls"""
+        client = self.ser.accept()[0]
         msg = url + '~' + json_str
         client.send('Worker'.encode('utf-8'))
         if client.recv(1024).decode('utf-8') == "Ready":
@@ -32,7 +39,9 @@ class Server:
         client.close()
 
     def start_server(self):
-        client, addr = self.ser.accept()
+        """Checks connection to the client and
+        starts up the master thread"""
+        client = self.ser.accept()[0]
         client.send('CLinet is connected!'.encode('utf-8'))
 
         master_tr = threading.Thread(
@@ -42,10 +51,12 @@ class Server:
         master_tr.start()
         master_tr.join()
 
+        client.close()
         print('End')
 
     def master(self):
-
+        """Starts up worker threads, in loop connects to the
+        client, receives url from client and puts it in queue"""
         worker_tr = [
             threading.Thread(
                 target=self.worker,
@@ -53,17 +64,17 @@ class Server:
             for _ in range(self.w_count)
         ]
 
-        for th in worker_tr:
-            th.start()
+        for thread in worker_tr:
+            thread.start()
 
         while True:
-            client, addr = self.ser.accept()
+            client = self.ser.accept()[0]
             client.send('Master'.encode('utf-8'))
 
             try:
                 data = client.recv(1024)
-            except Exception as e:
-                print(f'Error {str(e)}')
+            except ConnectionResetError:
+                print('ConnectionResetError')
                 break
 
             if len(data) > 0:
@@ -76,10 +87,13 @@ class Server:
 
             client.close()
 
-        for th in worker_tr:
-            th.join()
+        for thread in worker_tr:
+            thread.join()
 
     def worker(self):
+        """Worker threads in loop take urls from the queue,
+        take html from url and count most common words and
+        send the result to client"""
         while True:
             try:
                 url = self.que.get(timeout=1)
@@ -90,23 +104,25 @@ class Server:
                 print('Worker stopped')
                 break
             try:
-                rs = requests.get(url)
-                if rs.status_code != 200:
+                request = requests.get(url, timeout=10)
+                if request.status_code != 200:
                     print('Status code is not 200')
                     continue
-            except Exception as e:
-                print(f'Error: {e}')
+            except requests.exceptions.RequestException as ex:
+                print(f'Exception: {str(ex)}')
                 continue
 
-            http = rs.text
+            http = request.text
             word_list = re.findall('[a-zа-яё]+', http, flags=re.IGNORECASE)
             freq = Counter(word_list).most_common(self.com_count)
             js_freq = json.dumps(dict(freq))
             self.sender(js_freq, url)
-            print(js_freq)
+            with self.lock:
+                print(f'Number of processed urls is: {self.url_count}')
 
 
 def create_parser():
+    """Parsed arguments that given in the start of .py script"""
     parser = argparse.ArgumentParser()
     parser.add_argument('-w', type=int, default=1)
     parser.add_argument('-k', type=int, default=1)
