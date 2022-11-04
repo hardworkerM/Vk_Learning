@@ -67,7 +67,8 @@ class Client:
                 ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 ser.connect((self.host, self.port))
                 msg = ser.recv(1024).decode('utf-8')
-            except ConnectionResetError:
+            except (ConnectionResetError, ConnectionRefusedError):
+                ser.close()
                 break
             if msg == 'Master':
                 url = self.que.get(timeout=1)
