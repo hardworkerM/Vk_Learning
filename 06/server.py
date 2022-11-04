@@ -15,8 +15,8 @@ class Server:
     """Server takes such values as w_count - number of worker threads,
     com_count - number of most common use words in html
     host and port"""
-    def __init__(self, w_count: int, com_count: int,
-                 host=socket.gethostname(), port=4000):
+    def __init__(self, w_count=1, com_count=1,
+                 host=socket.gethostname(), port=5000):
         print(f'Server ip:{host}, port:{port}')
         self.w_count = w_count
         self.com_count = com_count
@@ -24,6 +24,7 @@ class Server:
         self.url_count = 0
         self.que = queue.Queue(self.w_count * 2)
         self.ser = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.ser.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.ser.bind((host, port))
         self.ser.listen(self.w_count + 1)
 
@@ -43,6 +44,7 @@ class Server:
         starts up the master thread"""
         client = self.ser.accept()[0]
         client.send('CLinet is connected!'.encode('utf-8'))
+        client.close()
 
         master_tr = threading.Thread(
                 target=self.master,
@@ -51,7 +53,7 @@ class Server:
         master_tr.start()
         master_tr.join()
 
-        client.close()
+        self.ser.close()
         print('End')
 
     def master(self):
@@ -77,6 +79,11 @@ class Server:
                 print('ConnectionResetError')
                 break
 
+            if data.decode('utf-8') == 'Stop':
+                print('Server stopped')
+                for _ in range(self.w_count):
+                    self.que.put(None)
+                break
             if len(data) > 0:
                 url = data.decode('utf-8')[:-1]
                 self.que.put(url)
@@ -86,6 +93,7 @@ class Server:
                 break
 
             client.close()
+        client.close()
 
         for thread in worker_tr:
             thread.join()
@@ -98,7 +106,7 @@ class Server:
             try:
                 url = self.que.get(timeout=1)
             except queue.Empty:
-                print('Error empty queue')
+                print('Waiting for url...')
                 continue
             if url is None:
                 print('Worker stopped')
@@ -119,6 +127,11 @@ class Server:
             self.sender(js_freq, url)
             with self.lock:
                 print(f'Number of processed urls is: {self.url_count}')
+
+    def close(self):
+        """Closes the server"""
+        self.ser.shutdown(socket.SHUT_RDWR)
+        self.ser.close()
 
 
 def create_parser():
