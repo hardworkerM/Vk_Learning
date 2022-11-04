@@ -11,13 +11,12 @@ class Client:
     file - name of file which client will send to server,
     host and port"""
     def __init__(self, th_count, file: str,
-                 host=socket.gethostname(), port=4000):
+                 host=socket.gethostname(), port=5000):
         self.file = file
         self.th_count = th_count
         self.host = host
         self.port = port
         self.que = queue.Queue(self.th_count * 2)
-        self.lock = threading.Lock()
 
     def connect(self):
         """Check connection to server, starts threads,
@@ -30,8 +29,8 @@ class Client:
         except ConnectionResetError:
             print('ConnectionResetError')
             msg = 'Exit'
-            sys.exit()
         if msg == 'CLinet is connected!':
+            print(msg)
             threads = [
                 threading.Thread(
                     target=self.listen,
@@ -47,7 +46,8 @@ class Client:
             for thread in threads:
                 thread.join()
         else:
-            sys.exit()
+            print("Wrong connection message from Server")
+        ser.close()
 
     def queue_gen(self):
         """Fills queue with urls from given file"""
