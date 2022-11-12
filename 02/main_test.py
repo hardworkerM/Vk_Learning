@@ -21,12 +21,12 @@ class MainTest(unittest.TestCase):
         fake_doc = {}
         field_list = []
         value_list = []
-        for i in range(5):
+        for _ in range(5):
             field = str(fake.country())
             while field in field_list:
                 field = str(fake.country())
             cur_value_list = []
-            for j in range(5):
+            for _ in range(5):
                 cur_value_list.append(fake.last_name())
             fake_doc[field] = ' '.join(cur_value_list)
             field_list.append(field)
@@ -49,18 +49,24 @@ class MainTest(unittest.TestCase):
     @patch('main.keyword_handler')
     def test_keywords_callback(self, mocker):
         fake_json, fake_doc = self.generate_fake_json()
-        required_fields, keywords, count = self.generate_required_values(fake_doc)
+        required_fields, keywords, count =\
+            self.generate_required_values(fake_doc)
         main.parse_json(mocker, fake_json, required_fields, keywords)
         self.assertEqual(mocker.call_count, count)
 
     def test_except_call(self):
         json_str = '{1: "Word1 word2", "key2": "word2 word3"}'
+        none_func = None
         with self.assertRaises(TypeError):
-            main.parse_json(main.keyword_handler, json_str, ['key1'], ['word2'])
+            main.parse_json(none_func, json_str, ['key1'], ['word2'])
+        with self.assertRaises(TypeError):
+            main.parse_json(main.keyword_handler,
+                            json_str, ['key1'], ['word2'])
         json_str = '{"key1": "Word1 word2", "key2": 3}'
         with self.assertRaises(TypeError):
-            main.parse_json(main.keyword_handler, json_str, ['key2'], ['word2'])
+            main.parse_json(main.keyword_handler,
+                            json_str, ['key2'], ['word2'])
 
-            
+
 if __name__ == '__main__':
     unittest.main()
